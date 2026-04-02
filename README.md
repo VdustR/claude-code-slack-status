@@ -21,10 +21,8 @@ Claude Code plugin that syncs quota usage and reset time into Slack custom statu
 
 ## Install
 
-Add as a Claude Code plugin, then run the setup skill in any Claude Code session:
-
 ```bash
-claude plugin add /path/to/claude-code-slack-status
+npx -y skills add VdustR/claude-code-slack-status -g
 ```
 
 The setup skill will:
