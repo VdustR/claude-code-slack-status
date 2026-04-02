@@ -1,0 +1,5 @@
+{
+  "name": "claude-code-slack-status",
+  "version": "0.1.0",
+  "description": "Sync Claude Code quota + reset time into Slack custom status with AI-generated format."
+}

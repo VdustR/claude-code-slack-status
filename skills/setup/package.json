@@ -1,0 +1,23 @@
+{
+  "name": "claude-code-slack-status",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Claude Code plugin that syncs quota + reset time into Slack custom status via AI-generated format.",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "esbuild src/hook.ts --bundle --platform=node --format=esm --outfile=dist/hook.mjs --target=node22",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.1.0"
+  }
+}
