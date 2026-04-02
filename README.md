@@ -1,23 +1,12 @@
 # claude-code-slack-status
 
-Claude Code plugin that syncs quota usage and reset time into Slack custom status through local hooks with AI-generated formatting.
+Show your Claude Code quota and reset time in Slack status — with AI-generated formatting you can customize.
 
-## Features
-
-- Sync Claude Code 5h and 7d quota into Slack custom status
-- Show reset time (absolute or relative, customizable)
-- AI-generated format — dynamically built, not hardcoded
-- Dynamic emoji thresholds — any number of levels, any emojis
-- Restore previous Slack status when the last session ends
-- Respect manual status changes (ownership detection)
-- 15-minute status lease auto-expires if Claude dies
-
-## Requirements
-
-- Node 22+ (via [mise](https://mise.jdx.dev/))
-- Slack user token (`xoxp-`) with `users.profile:read` and `users.profile:write` scopes
-  - Set as `SLACK_STATUS_USER_TOKEN` or `SLACK_MCP_XOXP_TOKEN` env var
-- Claude Code credentials (`~/.claude/.credentials.json` or macOS Keychain)
+```
+:battery: 95% (4h 45m / 5h) ··· 88% (6d 3h / 7d)          ← healthy
+:low_battery: 42% (2h 10m / 5h) ··· 35% (2d 11h / 7d)     ← warning
+:empty_battery: 8% (25m / 5h) ··· 15% (1d 1h / 7d) [!]    ← critical
+```
 
 ## Install
 
@@ -25,36 +14,61 @@ Claude Code plugin that syncs quota usage and reset time into Slack custom statu
 npx -y skills add VdustR/claude-code-slack-status -g
 ```
 
-The setup skill will:
+### Prerequisites
+
+Before running setup, make sure you have:
+
+- **Node 22+** — install via [mise](https://mise.jdx.dev/) or your preferred version manager
+- **Slack user token** (`xoxp-`) with `users.profile:read` and `users.profile:write` scopes, set as env var:
+  - `SLACK_STATUS_USER_TOKEN` (preferred), or
+  - `SLACK_MCP_XOXP_TOKEN` (fallback — shared with Slack MCP)
+- **Claude Code credentials** — either `~/.claude/.credentials.json` or macOS Keychain
+
+### Setup
+
+In any Claude Code session, tell the AI to set up Slack status. For example:
+
+> "Help me set up Claude Code Slack status"
+
+The AI will:
 
 1. Check prerequisites
-2. Build the hook handler (esbuild → single .mjs file)
-3. Generate your custom format with AI-assisted preview
-4. Deploy to `~/.claude/claude-code-slack-status/`
-5. Install hooks into `~/.claude/settings.json`
+2. Build the hook handler from source
+3. Help you design your status format (emoji, thresholds, time display)
+4. Preview multiple options for you to choose from
+5. Deploy and install hooks
 
-## Architecture
+### Reconfigure
 
-```
-skills/setup/                  Runtime (~/.claude/claude-code-slack-status/)
-├── SKILL.md                   ├── hook.mjs    ← esbuild bundle
-├── src/*.ts (source + tests)  ├── hook.sh     ← shell wrapper (mise + node)
-├── package.json               ├── format.mjs  ← AI-generated format function
-├── tsconfig.json              ├── config.json ← operational config
-└── vitest.config.ts           ├── state.json  ← session + circuit breaker state
-                               └── logs/events.jsonl
-```
+To change your status format later, just ask:
 
-Source, build config, and tests all live in `skills/setup/` so they're available when installed via `npx skills add`. The setup skill builds everything dynamically in a tmp dir.
+> "Change my Claude Slack status format"
+
+No need to reinstall — only the format module gets updated.
+
+### Uninstall
+
+> "Remove the Claude Slack status integration"
+
+## How It Works
+
+When you use Claude Code, hooks fire on session events:
+
+- **SessionStart** — saves your current Slack status, sets quota status
+- **Stop** — updates quota (throttled to avoid API spam)
+- **StopFailure** — shows rate-limited status if quota hit
+- **SessionEnd** — restores your original Slack status
+
+Your Slack status auto-expires after 15 minutes, so if Claude or your terminal dies, it won't stick forever. If you manually change your Slack status while Claude is running, the integration detects this and won't overwrite it.
 
 ## Development
 
 ```bash
 cd skills/setup
 pnpm install
-pnpm test          # run tests
-pnpm typecheck     # type checking
-pnpm build         # build hook.mjs to dist/
+pnpm test          # run all tests
+pnpm typecheck     # strict mode
+pnpm build         # esbuild → dist/hook.mjs
 ```
 
 ## License
