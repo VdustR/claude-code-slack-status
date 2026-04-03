@@ -3,10 +3,13 @@
 Show your Claude Code quota and reset time in Slack status — with AI-generated formatting you can customize.
 
 ```
-:battery: 95% (4h 45m / 5h) ··· 88% (6d 3h / 7d)          ← healthy
-:low_battery: 42% (2h 10m / 5h) ··· 35% (2d 11h / 7d)     ← warning
-:empty_battery: 8% (25m / 5h) ··· 15% (1d 1h / 7d) [!]    ← critical
+🔋 95% (19:00) · 88% (4/8 00:00) @ 14:30         ← healthy
+🪫 42% (16:30) · 35% (4/5 12:00) @ 14:30          ← warning
+⚠️ 8% (12:25) · 15% (4/4 01:00) @ 14:30           ← critical
+⛔ Quota exhausted (12:00) @ 14:30                  ← rate-limited
 ```
+
+> Emoji, thresholds, time format, separator — everything is customizable during setup. Slack emoji (e.g., `:battery:`, `:parrot:`) are used in Slack; the preview above shows Unicode approximations.
 
 ## Install
 
@@ -59,7 +62,7 @@ When you use Claude Code, hooks fire on session events:
 - **StopFailure** — shows rate-limited status if quota hit
 - **SessionEnd** — restores your original Slack status
 
-Your Slack status auto-expires after 15 minutes, so if Claude or your terminal dies, it won't stick forever. If you manually change your Slack status while Claude is running, the integration detects this and won't overwrite it.
+If you enable auto-close during setup, the status auto-expires as a safety net for crashes. If you manually change your Slack status while Claude is running, the integration detects this and won't overwrite it.
 
 ## Development
 
