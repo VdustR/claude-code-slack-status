@@ -20,7 +20,7 @@ describe("config", () => {
     expect(config.version).toBe(1);
     expect(config.probeIntervalMs).toBe(60_000);
     expect(config.throttleIntervalMs).toBe(30_000);
-    expect(config.statusLeaseSeconds).toBe(900);
+    expect(config.statusLeaseSeconds).toBe(0);
   });
 
   it("round-trips through save and load", async () => {

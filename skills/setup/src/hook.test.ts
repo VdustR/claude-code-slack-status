@@ -122,6 +122,22 @@ describe("hook lifecycle", () => {
     }
   });
 
+  it("statusLeaseSeconds=0 sets status_expiration to 0 (no expiration)", async () => {
+    const { tempDir, runtime, getProfile } = await setupTestEnv();
+    try {
+      await fs.writeFile(
+        path.join(runtime.appHome, "config.json"),
+        JSON.stringify({ version: 1, probeIntervalMs: 60000, throttleIntervalMs: 30000, statusLeaseSeconds: 0 }),
+      );
+
+      await handleHookEvent(runtime, { hook_event_name: "SessionStart", session_id: "s-lease0", cwd: "/tmp" });
+      expect(getProfile().status_expiration).toBe(0);
+      expect(getProfile().status_text).toContain("5h:60%");
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it("Stop within throttle window does not re-set identical status", async () => {
     const { tempDir, runtime, getSetCount } = await setupTestEnv();
     try {

@@ -82,6 +82,10 @@ async function loadFormatFn(formatPath: string): Promise<FormatStatusFn> {
   return mod.formatStatus;
 }
 
+function computeExpiration(nowMs: number, leaseSeconds: number): number {
+  return leaseSeconds > 0 ? Math.floor(nowMs / 1000) + leaseSeconds : 0;
+}
+
 function fallbackFormat(snapshot: QuotaSnapshot): FormatResult {
   const p5 = Math.round(snapshot.fiveHour.percentLeft);
   const p7 = Math.round(snapshot.sevenDay.percentLeft);
@@ -140,8 +144,7 @@ export async function handleHookEvent(
         const rlProfile: SlackProfile = {
           status_text: "Claude rate-limited",
           status_emoji: ":no_entry:",
-          status_expiration:
-            Math.floor(now / 1000) + config.statusLeaseSeconds,
+          status_expiration: computeExpiration(now, config.statusLeaseSeconds),
         };
         await writeSlackProfile(runtime, state, config, token, rlProfile);
       }
@@ -201,8 +204,7 @@ async function updateSlackForSession(
   const desiredProfile: SlackProfile = {
     status_text: statusText.slice(0, 100),
     status_emoji: statusEmoji,
-    status_expiration:
-      Math.floor(runtime.now() / 1000) + config.statusLeaseSeconds,
+    status_expiration: computeExpiration(runtime.now(), config.statusLeaseSeconds),
   };
 
   await writeSlackProfile(runtime, state, config, token, desiredProfile);

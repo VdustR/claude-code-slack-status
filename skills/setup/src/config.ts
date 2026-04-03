@@ -6,7 +6,7 @@ export function createDefaultConfig(): AppConfig {
     version: 1,
     probeIntervalMs: 60_000,
     throttleIntervalMs: 30_000,
-    statusLeaseSeconds: 900,
+    statusLeaseSeconds: 0,
   };
 }
 
