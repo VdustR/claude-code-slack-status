@@ -66,6 +66,37 @@ This is the creative part — work with the user to design their ideal status fo
 
 **Ask the user** what info they want to see and how. Some prefer minimal (`5h:42% 7d:78%`), others want reset times (`42% (2h 10m / 5h)`), others want verbose. Don't assume — ask.
 
+**Additional options — ask the user about each. All options are fully customizable; the defaults below are starting points.**
+
+1. **Time format per field** (default: **absolute** for all)
+   - Each time field can be individually set to absolute or relative:
+     - `s.fiveHour.resetAt` / `s.fiveHour.resetIn` — default: absolute `HH:mm` (e.g., `16:30`). Alternative: relative (e.g., `2h 10m`).
+     - `s.sevenDay.resetAt` / `s.sevenDay.resetIn` — default: absolute `M/D HH:mm` or `Mon D` (e.g., `4/5 00:00`). Alternative: relative (e.g., `3d 2h`).
+     - `s.capturedAt` — default: absolute `HH:mm` (e.g., `14:30`). Alternative: relative (e.g., `2m ago`).
+   - Use `Intl.DateTimeFormat` (Node.js built-in, no deps). Default: 24h format.
+   - User may request: 12h format, include seconds, different locale, date-fns (if requested, suggest Intl instead — no bundling needed).
+   - Ask: "All times default to absolute (e.g., 16:30). Want to change any to relative (e.g., 2h 10m)?"
+
+2. **Last update time display** (default: **yes**)
+   - Ask: "Want to show when the status was last updated?"
+   - If yes: appended as `@ HH:mm` by default (customizable position and format).
+   - Uses `s.capturedAt` — already available in `QuotaSnapshot`.
+
+3. **Auto-close** (default: **no**)
+   - Ask: "Want the Slack status to auto-expire after a timeout? (safety net if Claude crashes)"
+   - If no: set `statusLeaseSeconds: 0` in config.json (status stays until SessionEnd restores it or user clears manually).
+   - If yes: ask for timeout duration (default: 15 minutes = 900 seconds). Set `statusLeaseSeconds` accordingly.
+   - Note: Even without auto-close, SessionEnd always restores the baseline status. Auto-close is a safety net for crashes/force-quits.
+
+4. **Custom content** (default: **no**)
+   - Ask: "Want to add any custom text or override messages?"
+   - Sub-questions if yes:
+     - **Position**: "Before or after the quota info?" (or wrapping it)
+     - **Custom rate-limit message**: "Want a specific message when at 0%?" (e.g., `"☕ Taking a break — quota resets at {time}"`)
+     - **Custom prefix/suffix**: Free-form text the user wants always shown (e.g., team name, project, a note)
+   - Generate the format.mjs with the user's choices baked in.
+   - User can make ANY adjustments — these are just common patterns to offer.
+
 **Available data in `QuotaSnapshot` (the `s` parameter):**
 
 | Field | Type | Description | Example |
@@ -95,11 +126,13 @@ export function formatStatus(s) {
 **Design rules for format generation:**
 - Emoji levels are fully dynamic — any number of breakpoints, any emojis
 - Include comments showing users how to customize emojis and thresholds
-- Time formatting is free-form (relative like `2h 10m`, absolute like `16:30`, or any format)
+- **Time formatting defaults to absolute** (`Intl.DateTimeFormat`) for all fields. Each field (5h reset, 7d reset, capturedAt) can be individually switched to relative/remaining. Include the relative formatter commented-out for easy switching.
 - Default thresholds: >50% healthy, 50%~11% warning, 10%~1% critical, 0% rate-limited
 - But user can request any number of levels with any breakpoints
 - Generate 3+ options, validate EACH in tmp before presenting
 - Show previews for multiple scenarios: healthy, warning, critical, rate-limited
+- Separator: `·` (single centered dot)
+- **Everything is freely customizable** — the defaults are starting points, not constraints
 
 **Sample format option (Option D from design):**
 
@@ -111,30 +144,57 @@ export function formatStatus(s) {
 const levels = [
   { below: 101, emoji: ":battery:" },       // > 50%: healthy
   { below: 50,  emoji: ":low_battery:" },    // 50% ~ 11%: warning
-  { below: 10,  emoji: ":empty_battery:" },  // 10% ~ 1%: critical
+  { below: 10,  emoji: ":warning:" },        // 10% ~ 1%: critical
   { below: 1,   emoji: ":no_entry:" },       // 0%: rate-limited
 ];
 
 const pick = (pct) => levels.find((l) => pct < l.below)?.emoji ?? levels[0].emoji;
 
-const fmt = (ms) => {
-  const m = Math.floor(ms / 60000);
-  const d = Math.floor(m / 1440);
-  const h = Math.floor((m % 1440) / 60);
-  const mm = m % 60;
-  if (d > 0) return h > 0 ? `${d}d ${h}h` : `${d}d`;
-  if (h > 0) return mm > 0 ? `${h}h ${mm}m` : `${h}h`;
-  return `${mm}m`;
-};
+// Time formatters — each field uses absolute by default
+// Switch any to relative by changing the corresponding function below
+
+// Absolute time: HH:mm (24h). Change to { hour12: true } for 12h format.
+const fmtTime = (date) =>
+  new Intl.DateTimeFormat("default", { hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+
+// Absolute date+time for 7d window: M/D HH:mm. Customize as needed.
+const fmtDateTime = (date) =>
+  new Intl.DateTimeFormat("default", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(date);
+
+// Relative time formatter — uncomment and use for any field you want as relative/remaining
+// const fmtRelative = (ms) => {
+//   const m = Math.floor(ms / 60000);
+//   const d = Math.floor(m / 1440);
+//   const h = Math.floor((m % 1440) / 60);
+//   const mm = m % 60;
+//   if (d > 0) return h > 0 ? `${d}d ${h}h` : `${d}d`;
+//   if (h > 0) return mm > 0 ? `${h}h ${mm}m` : `${h}h`;
+//   return `${mm}m`;
+// };
 
 export function formatStatus(s) {
   const p5 = Math.round(s.fiveHour.percentLeft);
   const p7 = Math.round(s.sevenDay.percentLeft);
   const closest = Math.min(p5, p7);
-  const tag = closest < 10 ? " [!]" : "";
+
+  // Last update time
+  const updated = ` @ ${fmtTime(s.capturedAt)}`;
+
+  // Custom rate-limit message — shown when at 0%
+  if (closest === 0) {
+    return {
+      statusText: `Quota exhausted (${fmtTime(s.fiveHour.resetAt)})${updated}`,
+      statusEmoji: ":no_entry:",
+    };
+  }
+
+  // 5h reset: absolute time (e.g., "16:30"). To use relative: fmtRelative(s.fiveHour.resetIn)
+  const r5 = fmtTime(s.fiveHour.resetAt);
+  // 7d reset: absolute date+time (e.g., "4/5 00:00"). To use relative: fmtRelative(s.sevenDay.resetIn)
+  const r7 = fmtDateTime(s.sevenDay.resetAt);
 
   return {
-    statusText: `${p5}% (${fmt(s.fiveHour.resetIn)} / 5h) ··· ${p7}% (${fmt(s.sevenDay.resetIn)} / 7d)${tag}`,
+    statusText: `${p5}% (${r5}) · ${p7}% (${r7})${updated}`,
     statusEmoji: pick(closest),
   };
 }
@@ -167,7 +227,24 @@ node --input-type=module -e "
 
 If validation fails, fix the code and retry. Only present options that pass all 4 scenarios.
 
-**Presenting to the user:** Show each option with all 4 scenario previews so they can see how it looks across different states. If the user wants changes (different emoji, different time format, more/fewer threshold levels), regenerate and re-validate. Keep iterating until they approve.
+**Presenting to the user:** Show each option with all 4 scenario previews. Convert Slack emoji codes to Unicode for terminal display. **Do not use a hardcoded emoji map.** Since you generate format.mjs and know which Slack emoji codes are used, dynamically generate the mapping for just those codes in the preview script. For example, if the format uses `:battery:`, `:low_battery:`, `:warning:`, `:no_entry:`, generate:
+
+```javascript
+const emojiMap = { ":battery:": "🔋", ":low_battery:": "🪫", ":warning:": "⚠️", ":no_entry:": "⛔" };
+const toUnicode = (code) => emojiMap[code] ?? code;
+```
+
+The mapping is generated fresh each time based on the actual codes — if the user picks different emoji, the mapping changes accordingly.
+
+> Note: Preview shows Unicode emoji approximations. In Slack, these render as Slack emoji — you can use any Slack custom emoji (e.g., `:parrot:`) but custom emoji won't render in this preview.
+
+Expected default preview output:
+```
+🔋 95% (19:00) · 88% (4/8 00:00) @ 14:30         ← healthy
+🪫 42% (16:30) · 35% (4/5 12:00) @ 14:30          ← warning
+⚠️ 8% (12:25) · 15% (4/4 01:00) @ 14:30           ← critical
+⛔ Quota exhausted (12:00) @ 14:30                  ← rate-limited
+```
 
 ### Step 4: Generate hook.sh
 
@@ -194,7 +271,7 @@ cp "$BUILD_DIR/hook.mjs" "$DEPLOY_DIR/hook.mjs"
 cp "$BUILD_DIR/hook.sh" "$DEPLOY_DIR/hook.sh"
 chmod +x "$DEPLOY_DIR/hook.sh"
 cp "$BUILD_DIR/format.mjs" "$DEPLOY_DIR/format.mjs"
-[ -f "$DEPLOY_DIR/config.json" ] || echo '{"version":1,"probeIntervalMs":60000,"throttleIntervalMs":30000,"statusLeaseSeconds":900}' > "$DEPLOY_DIR/config.json"
+[ -f "$DEPLOY_DIR/config.json" ] || echo '{"version":1,"probeIntervalMs":60000,"throttleIntervalMs":30000,"statusLeaseSeconds":0}' > "$DEPLOY_DIR/config.json"
 rm -rf "$BUILD_DIR"
 ```
 
@@ -250,4 +327,4 @@ If the user just wants to change their status format (emoji, thresholds, time st
 - **Preserve unrelated hooks** in `settings.json` — only touch hooks managed by this tool.
 - **Validate before deploying** — all artifacts must pass validation in the tmp dir before being copied to the deploy directory.
 - **Respect manual status changes** — if the user changed their Slack status while Claude Code was running, don't overwrite it on session end.
-- **Status lease** — Slack status expires after 15 minutes automatically, so if Claude or the terminal dies, the status won't stick forever.
+- **Status lease** — if auto-close is enabled during setup, Slack status auto-expires after the configured duration as a safety net. Without auto-close, the status is cleared when all sessions end.
