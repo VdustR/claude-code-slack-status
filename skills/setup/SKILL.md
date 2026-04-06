@@ -185,8 +185,9 @@ export function formatStatus(s) {
 
   // Custom rate-limit message — shown when at 0%
   if (level === 3) {
+    const reset = p7 < 1 ? fmtDateTime(s.sevenDay.resetAt) : fmtTime(s.fiveHour.resetAt);
     return {
-      statusText: `Quota exhausted (${fmtTime(s.fiveHour.resetAt)})${updated}`,
+      statusText: `Quota exhausted (${reset})${updated}`,
       statusEmoji: emojis[3],
     };
   }
