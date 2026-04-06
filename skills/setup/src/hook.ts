@@ -92,7 +92,11 @@ function fallbackFormat(snapshot: QuotaSnapshot): FormatResult {
   return {
     statusText: `Claude 5h:${p5}% 7d:${p7}%`,
     statusEmoji:
-      p5 < 10 || p7 < 10 ? ":red_circle:" : ":large_green_circle:",
+      p5 <= 20 || p7 <= 14
+        ? ":red_circle:"
+        : p5 <= 40 || p7 <= 29
+          ? ":large_yellow_circle:"
+          : ":large_green_circle:",
   };
 }
 
