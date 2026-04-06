@@ -18,8 +18,8 @@ Core principle: **everything is freely customizable** — defaults are starting 
 Example default output:
 ```
 🔋 95% (19:00) · 88% (4/8 00:00) @ 14:30         ← healthy
-🪫 42% (16:30) · 35% (4/5 12:00) @ 14:30          ← warning
-⚠️ 8% (12:25) · 15% (4/4 01:00) @ 14:30           ← critical
+🪫 35% (16:30) · 25% (4/5 12:00) @ 14:30          ← warning
+⚠️ 15% (12:25) · 10% (4/4 01:00) @ 14:30          ← critical
 ⛔ Quota exhausted (12:00) @ 14:30                  ← rate-limited
 ```
 
@@ -131,8 +131,8 @@ Change `statusLeaseSeconds` from 900 to 0.
 Update the example block to match new defaults:
 ```
 🔋 95% (19:00) · 88% (4/8 00:00) @ 14:30         ← healthy
-🪫 42% (16:30) · 35% (4/5 12:00) @ 14:30          ← warning
-⚠️ 8% (12:25) · 15% (4/4 01:00) @ 14:30           ← critical
+🪫 35% (16:30) · 25% (4/5 12:00) @ 14:30          ← warning
+⚠️ 15% (12:25) · 10% (4/4 01:00) @ 14:30          ← critical
 ⛔ Quota exhausted (12:00) @ 14:30                  ← rate-limited
 ```
 
