@@ -1,5 +1,8 @@
 # claude-code-slack-status
 
+> [!IMPORTANT]
+> This repository is archived and no longer maintained. Use [VdustR/slack-status-codexbar](https://github.com/VdustR/slack-status-codexbar) for new installs, fixes, and feature work.
+
 Show your Claude Code quota and reset time in Slack status — with AI-generated formatting you can customize.
 
 ```
